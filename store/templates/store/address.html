@@ -1,0 +1,54 @@
+{% extends "store/base.html" %}
+
+{% block title %}My Address | SoleMate{% endblock %}
+
+{% block content %}
+<div class="auth-wrap" style="max-width: 560px;">
+    <div class="auth-card">
+        <h1>My Address</h1>
+        <p class="sub">This is the address used for delivery. Keep it up to date.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="full_name">Full name</label>
+                <input type="text" id="full_name" name="full_name" value="{{ address.full_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone number</label>
+                <input type="tel" id="phone" name="phone" value="{{ address.phone }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="address_line1">Address line 1</label>
+                <input type="text" id="address_line1" name="address_line1" value="{{ address.address_line1 }}" placeholder="House no., street, area" required>
+            </div>
+
+            <div class="form-group">
+                <label for="address_line2">Address line 2 (optional)</label>
+                <input type="text" id="address_line2" name="address_line2" value="{{ address.address_line2 }}" placeholder="Landmark, apartment, etc.">
+            </div>
+
+            <div class="form-group" style="display:flex; gap:14px;">
+                <div style="flex:1;">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" value="{{ address.city }}" required>
+                </div>
+                <div style="flex:1;">
+                    <label for="state">State</label>
+                    <input type="text" id="state" name="state" value="{{ address.state }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="pincode">Pincode</label>
+                <input type="text" id="pincode" name="pincode" value="{{ address.pincode }}" maxlength="10" required>
+            </div>
+
+            <button type="submit" class="auth-submit">Save Address</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

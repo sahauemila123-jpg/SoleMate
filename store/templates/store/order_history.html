@@ -1,0 +1,32 @@
+{% extends "store/base.html" %}
+
+{% block title %}My Orders | SoleMate{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+    <h1 class="page-title">My Orders</h1>
+
+    {% if orders %}
+        {% for order in orders %}
+            <div class="cart-summary" style="margin-bottom: 20px;">
+                <div class="subtotal" style="font-size:16px; margin-bottom: 12px;">
+                    <span>Order #{{ order.id }} — {{ order.created_at|date:"d M Y, h:i A" }}</span>
+                    <span>₹{{ order.total|floatformat:2 }}</span>
+                </div>
+                {% for item in order.items.all %}
+                    <div style="display:flex; justify-content:space-between; padding: 6px 0; color: var(--muted); font-size: 14px;">
+                        <span>{{ item.quantity }} × {{ item.product_name }}</span>
+                        <span>₹{{ item.subtotal|floatformat:2 }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-cart">
+            <div style="font-size:55px">📦</div>
+            <h3>No orders yet</h3>
+            <p>Once you place an order, it'll show up here.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

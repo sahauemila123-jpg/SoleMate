@@ -1,0 +1,409 @@
+{% extends "store/base.html" %}
+
+{% block extra_style %}
+    .hero {
+        max-width: 1250px; min-height: 480px; margin: 30px auto; padding: 60px;
+        border-radius: 28px;
+        background:
+            linear-gradient(110deg, rgba(0,0,0,.82), rgba(0,0,0,.2)),
+            url("https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=85");
+        background-size: cover; background-position: center;
+        color: white; display: flex; align-items: center;
+    }
+    .hero-content { max-width: 650px; }
+    .hero-label {
+        display: inline-block; padding: 8px 14px; margin-bottom: 18px;
+        background: var(--primary); border-radius: 20px;
+        font-size: 13px; font-weight: bold; text-transform: uppercase;
+    }
+    .hero h1 { font-size: clamp(40px, 6vw, 70px); line-height: 1; margin-bottom: 20px; }
+    .hero p { font-size: 18px; line-height: 1.6; color: #eee; margin-bottom: 30px; }
+    .hero-btn { border: 0; padding: 15px 25px; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 16px; }
+    .hero-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+    /* TOP SEARCH BAR (separate from the Filters button) */
+    .top-search {
+        max-width: 1250px; margin: 30px auto 0; padding: 0 20px;
+    }
+    .top-search form {
+        display: flex; gap: 10px;
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 14px; padding: 8px;
+    }
+    .top-search input {
+        flex: 1; border: 0; outline: none; background: transparent;
+        color: var(--text); padding: 12px 14px; font-size: 15px;
+    }
+    .top-search button {
+        border: 0; border-radius: 10px; background: var(--primary); color: white;
+        font-weight: bold; padding: 12px 26px; font-size: 15px; white-space: nowrap;
+    }
+    .top-search button:hover { background: var(--primary-dark); }
+
+    .section-title { margin: 40px 0 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .section-title h2 { font-size: 30px; }
+    .result-count { color: var(--muted); font-size: 14px; }
+
+    .gender-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 45px; }
+    .gender-card {
+        min-height: 220px; padding: 25px; border-radius: 20px;
+        background-size: cover; background-position: center;
+        display: flex; align-items: flex-end; color: white;
+        position: relative; overflow: hidden; cursor: pointer;
+    }
+    .gender-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+    .gender-content { position: relative; z-index: 1; }
+    .gender-content h3 { font-size: 28px; margin-bottom: 5px; }
+    .gender-content p { font-size: 14px; }
+    .men { background-image: url("https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80"); }
+    .women { background-image: url("https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80"); }
+    .kids { background-image: url("https://images.unsplash.com/photo-1514989940723-e8e51635b782?auto=format&fit=crop&w=800&q=80"); }
+
+    .filters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 12px; }
+    .filter {
+        padding: 10px 18px; white-space: nowrap; border: 1px solid var(--border);
+        border-radius: 30px; background: var(--card); color: var(--text);
+        display: inline-block;
+    }
+    .filter.active, .filter:hover { background: var(--primary); border-color: var(--primary); color: white; }
+
+    .active-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .active-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--bg); border: 1px solid var(--border);
+        padding: 7px 12px; border-radius: 20px; font-size: 13px; color: var(--text);
+    }
+    .active-pill a { color: var(--primary); font-weight: bold; text-decoration: none; }
+
+    /* FLOATING FILTERS BUTTON (price + category only) */
+    .filter-fab {
+        position: fixed; bottom: 26px; right: 26px; z-index: 900;
+        display: flex; align-items: center; gap: 8px;
+        background: var(--secondary); color: white; border: 0;
+        padding: 15px 24px; border-radius: 30px;
+        font-weight: bold; font-size: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,.3);
+    }
+    .filter-fab:hover { filter: brightness(1.1); }
+    .filter-fab .fab-badge {
+        background: white; color: var(--secondary); border-radius: 50%;
+        width: 20px; height: 20px; font-size: 11px; display: flex;
+        align-items: center; justify-content: center; font-weight: 800;
+    }
+
+    /* BOTTOM SHEET */
+    .sheet-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.5);
+        opacity: 0; visibility: hidden; transition: .25s; z-index: 1500;
+    }
+    .sheet-overlay.active { opacity: 1; visibility: visible; }
+
+    .filter-sheet {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        max-height: 85vh; overflow-y: auto;
+        background: var(--card); border-radius: 22px 22px 0 0;
+        z-index: 2000; padding: 26px;
+        transform: translateY(110%); transition: .35s ease;
+        box-shadow: 0 -10px 30px rgba(0,0,0,.2);
+    }
+    .filter-sheet.active { transform: translateY(0); }
+
+    .sheet-handle { width: 44px; height: 5px; background: var(--border); border-radius: 4px; margin: 0 auto 18px; }
+
+    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-header h3 { font-size: 20px; }
+    .sheet-close { border: 0; background: none; font-size: 26px; color: var(--text); line-height: 1; }
+
+    .sheet-section { margin-bottom: 22px; }
+    .sheet-section label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+    .sheet-section input {
+        width: 100%; padding: 13px 14px; border: 1px solid var(--border);
+        border-radius: 10px; background: var(--bg); color: var(--text); outline: none;
+    }
+    .sheet-section input:focus { border-color: var(--primary); }
+    .price-range-row { display: flex; gap: 12px; }
+    .price-range-row > div { flex: 1; }
+
+    .sheet-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .sheet-actions { display: flex; gap: 12px; margin-top: 10px; position: sticky; bottom: 0; background: var(--card); padding-top: 10px; }
+    .sheet-apply { flex: 1; border: 0; padding: 14px; border-radius: 10px; background: var(--secondary); color: white; font-weight: bold; font-size: 15px; }
+    .sheet-apply:hover { filter: brightness(1.1); }
+    .sheet-clear { padding: 14px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-weight: 700; }
+    .sheet-clear:hover { border-color: var(--primary); color: var(--primary); }
+
+    .products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+    .product-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; position: relative; transition: .3s; }
+    .product-card:hover { transform: translateY(-7px); box-shadow: 0 15px 35px rgba(0,0,0,.12); }
+    .product-image { height: 250px; background: #f0f0f0; overflow: hidden; }
+    .product-image img { width: 100%; height: 100%; object-fit: cover; transition: .4s; }
+    .product-card:hover img { transform: scale(1.08); }
+    .badge { position: absolute; top: 12px; left: 12px; padding: 6px 10px; background: var(--primary); color: white; border-radius: 6px; font-size: 11px; font-weight: bold; }
+    .wishlist { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: white; font-size: 19px; }
+    .wishlist.active { color: red; }
+    .product-info { padding: 18px; }
+    .product-category { color: var(--primary); font-size: 11px; font-weight: bold; text-transform: uppercase; }
+    .product-name { font-size: 18px; margin: 7px 0; }
+    .product-gender { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .rating { color: #ffb300; font-size: 14px; margin-bottom: 12px; }
+    .rating span { color: var(--muted); }
+    .product-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .price { font-size: 20px; font-weight: 800; }
+    .add-btn { border: 0; padding: 10px 14px; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; }
+    .add-btn:hover { background: var(--primary-dark); }
+    .no-results { grid-column: 1/-1; text-align: center; padding: 60px; color: var(--muted); }
+
+    .features { margin: 70px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .feature { background: var(--card); padding: 25px; border: 1px solid var(--border); border-radius: 15px; text-align: center; }
+    .feature-icon { font-size: 34px; margin-bottom: 12px; }
+    .feature h3 { margin-bottom: 8px; }
+    .feature p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    @media(max-width: 1050px) {
+        .products { grid-template-columns: repeat(3, 1fr); }
+        .features { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width: 750px) {
+        .hero { margin: 20px; padding: 45px 25px; min-height: 420px; }
+        .products { grid-template-columns: repeat(2, 1fr); }
+        .gender-grid { grid-template-columns: 1fr; }
+    }
+    @media(max-width: 500px) {
+        .hero h1 { font-size: 42px; }
+        .products { grid-template-columns: 1fr; }
+        .features { grid-template-columns: 1fr; }
+        .product-image { height: 280px; }
+        .filter-fab { right: 16px; bottom: 16px; padding: 13px 20px; }
+        .price-range-row { flex-direction: column; }
+        .top-search form { flex-direction: column; }
+    }
+{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-label">New Collection 2026</div>
+        <h1>Step Into Your Style.</h1>
+        <p>Discover stylish, comfortable and affordable shoes for men, women and kids.</p>
+        <button class="hero-btn" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Shop Shoes →</button>
+    </div>
+</section>
+
+<!-- SEARCH BAR — visible right at the top, separate from the Filters button -->
+<div class="top-search">
+    <form method="get" action="{% if current_category %}{% url 'category' current_category %}{% else %}{% url 'home' %}{% endif %}">
+        <input type="text" name="q" placeholder="Search shoes by name..." value="{{ search_query }}">
+        <input type="hidden" name="min_price" value="{{ min_price }}">
+        <input type="hidden" name="max_price" value="{{ max_price }}">
+        <button type="submit">🔍 Search</button>
+    </form>
+</div>
+
+<main class="container">
+
+    <div class="section-title"><h2>Shop By Category</h2></div>
+
+    <section class="gender-grid">
+        <a class="gender-card men" href="{% url 'category' 'Men' %}">
+            <div class="gender-content">
+                <h3>Men</h3>
+                <p>Sneakers, running shoes, formal shoes & more.</p>
+            </div>
+        </a>
+        <a class="gender-card women" href="{% url 'category' 'Women' %}">
+            <div class="gender-content">
+                <h3>Women</h3>
+                <p>Fashion sneakers, heels, sandals & more.</p>
+            </div>
+        </a>
+        <a class="gender-card kids" href="{% url 'category' 'Kids' %}">
+            <div class="gender-content">
+                <h3>Kids</h3>
+                <p>Fun, colorful and comfortable shoes for little feet.</p>
+            </div>
+        </a>
+    </section>
+
+    <section id="shop">
+        <div class="section-title">
+            <h2>
+                {% if current_category %}{{ current_category }}'s Shoes{% else %}Featured Shoes{% endif %}
+            </h2>
+            <span class="result-count">{{ products|length }} result{{ products|length|pluralize }}</span>
+        </div>
+
+        <div class="filters">
+            <a href="{% url 'home' %}" class="filter {% if not current_category %}active{% endif %}">All Shoes</a>
+            {% for chip in category_chips %}
+                <a href="{% url 'category' chip %}" class="filter {% if current_category|lower == chip|lower %}active{% endif %}">{{ chip }}</a>
+            {% endfor %}
+        </div>
+
+        {% if has_active_filters %}
+            <div class="active-pills">
+                {% if search_query %}
+                    <span class="active-pill">Search: "{{ search_query }}"</span>
+                {% endif %}
+                {% if min_price or max_price %}
+                    <span class="active-pill">Price: ₹{{ min_price|default:"0" }} – ₹{{ max_price|default:"∞" }}</span>
+                {% endif %}
+                <a href="{% url 'home' %}" class="active-pill" style="font-weight:700;">Clear all ✕</a>
+            </div>
+        {% endif %}
+
+        <br>
+
+        <div class="products" id="productGrid">
+            {% for product in products %}
+                <article class="product-card">
+                    <a href="{% url 'product_detail' product.id %}" style="display:block;">
+                        <div class="product-image">
+                            <img src="{{ product.display_image }}" alt="{{ product.name }}">
+                        </div>
+                    </a>
+
+                    {% if product.badge %}
+                        <span class="badge">{{ product.badge }}</span>
+                    {% endif %}
+
+                    <button type="button" class="wishlist" onclick="toggleWishlist(this)">♡</button>
+
+                    <div class="product-info">
+                        <div class="product-category">{{ product.category }}</div>
+                        <a href="{% url 'product_detail' product.id %}" style="text-decoration:none; color:inherit;">
+                            <h3 class="product-name">{{ product.name }}</h3>
+                        </a>
+                        <div class="product-gender">For {{ product.gender }}</div>
+                        <div class="rating">★★★★★ <span>{{ product.rating }}</span></div>
+
+                        <div class="product-bottom" style="flex-direction:column; align-items:stretch; gap:10px;">
+                            <div class="price">₹{{ product.price|floatformat:2 }}</div>
+
+                            {% if user.is_authenticated %}
+                                <div style="display:flex; gap:8px;">
+                                    <form method="post" action="{% url 'add_to_cart' product.id %}" style="flex:1;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="add-btn" style="width:100%;">Add to Cart</button>
+                                    </form>
+                                    <a href="{% url 'checkout' %}?buy_now_product_id={{ product.id }}&buy_now_qty=1" class="add-btn" style="flex:1; text-align:center; text-decoration:none; background:var(--secondary);">Buy Now</a>
+                                </div>
+                            {% else %}
+                                <a href="{% url 'login' %}?next={% url 'home' %}" class="add-btn" style="text-decoration:none; text-align:center;">Add to Cart</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="no-results">
+                    <div style="font-size:50px">👟</div>
+                    <h3>No shoes found</h3>
+                    <p>Try a different search, category, or price range.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">🚚</div>
+            <h3>Free Delivery</h3>
+            <p>Free shipping on orders over ₹4,000.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">👟</div>
+            <h3>Quality Shoes</h3>
+            <p>Carefully selected shoes for the whole family.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">↩️</div>
+            <h3>Easy Returns</h3>
+            <p>Simple 30-day return policy.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <h3>Secure Checkout</h3>
+            <p>Your payment information stays safe.</p>
+        </div>
+    </section>
+
+</main>
+
+<!-- FLOATING FILTERS BUTTON — price range + category only (search lives at the top now) -->
+<button type="button" class="filter-fab" id="openFiltersBtn">
+    ⚙️ Filters
+    {% if min_price or max_price or current_category %}<span class="fab-badge">✓</span>{% endif %}
+</button>
+
+<div class="sheet-overlay" id="sheetOverlay"></div>
+
+<div class="filter-sheet" id="filterSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h3>Filters</h3>
+        <button type="button" class="sheet-close" id="closeFiltersBtn">×</button>
+    </div>
+
+    <form method="get" action="{% if current_category %}{% url 'category' current_category %}{% else %}{% url 'home' %}{% endif %}">
+        <input type="hidden" name="q" value="{{ search_query }}">
+
+        <div class="sheet-section">
+            <label>Price Range (₹)</label>
+            <div class="price-range-row">
+                <div>
+                    <input type="number" name="min_price" min="0" step="1" placeholder="Min" value="{{ min_price }}">
+                </div>
+                <div>
+                    <input type="number" name="max_price" min="0" step="1" placeholder="Max" value="{{ max_price }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="sheet-section">
+            <label>Category</label>
+            <div class="sheet-chips">
+                <a href="{% url 'home' %}" class="filter {% if not current_category %}active{% endif %}">All Shoes</a>
+                {% for chip in category_chips %}
+                    <a href="{% url 'category' chip %}" class="filter {% if current_category|lower == chip|lower %}active{% endif %}">{{ chip }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="sheet-actions">
+            <button type="submit" class="sheet-apply">Apply Filters</button>
+            {% if min_price or max_price or current_category %}
+                <a href="{% url 'home' %}" class="sheet-clear">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    function toggleWishlist(button) {
+        button.classList.toggle("active");
+        button.textContent = button.classList.contains("active") ? "♥" : "♡";
+    }
+
+    /* FLOATING FILTERS BUTTON + BOTTOM SHEET */
+    const openFiltersBtn = document.getElementById("openFiltersBtn");
+    const closeFiltersBtn = document.getElementById("closeFiltersBtn");
+    const filterSheet = document.getElementById("filterSheet");
+    const sheetOverlay = document.getElementById("sheetOverlay");
+
+    function openFilterSheet() {
+        filterSheet.classList.add("active");
+        sheetOverlay.classList.add("active");
+    }
+    function closeFilterSheet() {
+        filterSheet.classList.remove("active");
+        sheetOverlay.classList.remove("active");
+    }
+
+    openFiltersBtn.addEventListener("click", openFilterSheet);
+    closeFiltersBtn.addEventListener("click", closeFilterSheet);
+    sheetOverlay.addEventListener("click", closeFilterSheet);
+</script>
+{% endblock %}

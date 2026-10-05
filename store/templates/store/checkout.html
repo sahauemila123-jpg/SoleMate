@@ -1,0 +1,183 @@
+{% extends "store/base.html" %}
+
+{% block title %}Checkout | SoleMate{% endblock %}
+
+{% block extra_style %}
+    .pay-btn {
+        width: 100%; padding: 15px; border: 0; border-radius: 10px;
+        background: var(--primary); color: white; font-weight: bold; font-size: 16px;
+    }
+    .pay-btn:hover { background: var(--primary-dark); }
+    .pay-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .test-mode-note {
+        background: #fff8e1; border: 1px solid #ffe08a; color: #8a6d00;
+        padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 20px;
+    }
+    body.dark .test-mode-note { background: #332b0a; border-color: #5c4c12; color: #ffd968; }
+    .checkout-error {
+        background: #fdeaea; border: 1px solid #f6c6c1; color: #c0392b;
+        padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-top: 14px; display: none;
+    }
+    body.dark .checkout-error { background: #351b1b; border-color: #522525; color: #ff8b7d; }
+    .buy-now-tag {
+        display: inline-block; background: var(--secondary); color: white;
+        font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 20px; margin-bottom: 16px;
+    }
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+    <h1 class="page-title">Checkout</h1>
+
+    {% if is_buy_now %}
+        <span class="buy-now-tag">⚡ Buy Now</span>
+    {% endif %}
+
+    <div class="test-mode-note">
+        🧪 This store uses Razorpay's <strong>test mode</strong> — no real money is ever charged.
+        Use test card <strong>4111 1111 1111 1111</strong>, any future expiry date, any CVV, to simulate a successful payment.
+    </div>
+
+    {% for line in lines %}
+        <div class="cart-item">
+            <img src="{{ line.product.display_image }}" alt="{{ line.product.name }}">
+            <div class="cart-item-info">
+                <h4>{{ line.product.name }}</h4>
+                <div class="cart-price">₹{{ line.product.price|floatformat:2 }} × {{ line.quantity }}</div>
+            </div>
+            <div style="font-weight:800; font-size:18px; align-self:center;">
+                ₹{{ line.subtotal|floatformat:2 }}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="cart-summary">
+        <div class="subtotal">
+            <span>Total to Pay</span>
+            <span>₹{{ total|floatformat:2 }}</span>
+        </div>
+
+        {% csrf_token %}
+        <button type="button" class="pay-btn" id="payButton">Pay ₹{{ total|floatformat:2 }} with Razorpay</button>
+
+        <div class="checkout-error" id="checkoutError"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    const BUY_NOW_PRODUCT_ID = "{{ buy_now_product_id|default:'' }}";
+    const BUY_NOW_QTY = "{{ buy_now_qty|default:'1' }}";
+    const PAY_LABEL = "Pay ₹{{ total|floatformat:2 }} with Razorpay";
+
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    function showError(message) {
+        const el = document.getElementById('checkoutError');
+        el.textContent = message;
+        el.style.display = 'block';
+    }
+
+    function extraParams() {
+        if (BUY_NOW_PRODUCT_ID) {
+            return { buy_now_product_id: BUY_NOW_PRODUCT_ID, buy_now_qty: BUY_NOW_QTY };
+        }
+        return {};
+    }
+
+    document.getElementById('payButton').addEventListener('click', async function () {
+        const payButton = this;
+        payButton.disabled = true;
+        payButton.textContent = 'Starting payment...';
+        document.getElementById('checkoutError').style.display = 'none';
+
+        try {
+            const createResp = await fetch("{% url 'razorpay_create_order' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(extraParams()),
+            });
+            const orderData = await createResp.json();
+
+            if (!createResp.ok) {
+                showError(orderData.error || 'Could not start payment.');
+                payButton.disabled = false;
+                payButton.textContent = PAY_LABEL;
+                return;
+            }
+
+            const options = {
+                key: orderData.key_id,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: orderData.name,
+                description: orderData.description,
+                order_id: orderData.razorpay_order_id,
+                prefill: {
+                    name: orderData.prefill_name,
+                    email: orderData.prefill_email,
+                },
+                theme: { color: '#ff4d4d' },
+                handler: async function (response) {
+                    payButton.textContent = 'Verifying payment...';
+                    try {
+                        const verifyResp = await fetch("{% url 'razorpay_verify' %}", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': getCsrfToken(),
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: new URLSearchParams({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                ...extraParams(),
+                            }),
+                        });
+                        const verifyData = await verifyResp.json();
+
+                        if (verifyResp.ok && verifyData.redirect_url) {
+                            window.location = verifyData.redirect_url;
+                        } else {
+                            showError(verifyData.error || 'Payment verification failed.');
+                            payButton.disabled = false;
+                            payButton.textContent = PAY_LABEL;
+                        }
+                    } catch (err) {
+                        showError('Something went wrong verifying the payment.');
+                        payButton.disabled = false;
+                        payButton.textContent = PAY_LABEL;
+                    }
+                },
+                modal: {
+                    ondismiss: function () {
+                        payButton.disabled = false;
+                        payButton.textContent = PAY_LABEL;
+                    },
+                },
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                showError('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'please try again.'));
+                payButton.disabled = false;
+                payButton.textContent = PAY_LABEL;
+            });
+            rzp.open();
+            payButton.textContent = PAY_LABEL;
+            payButton.disabled = false;
+        } catch (err) {
+            showError('Could not reach the payment server.');
+            payButton.disabled = false;
+            payButton.textContent = PAY_LABEL;
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "store/base.html" %}
+
+{% block title %}{{ product.name }} | SoleMate{% endblock %}
+
+{% block extra_style %}
+    .pd-wrap {
+        max-width: 1100px; margin: 40px auto; padding: 0 20px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+    }
+    .pd-image { border-radius: 20px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+    .pd-image img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 380px; }
+    .pd-category { color: var(--primary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
+    .pd-name { font-size: 34px; margin: 10px 0; }
+    .pd-gender { color: var(--muted); font-size: 15px; margin-bottom: 10px; }
+    .pd-rating { color: #ffb300; font-size: 16px; margin-bottom: 18px; }
+    .pd-rating span { color: var(--muted); }
+    .pd-price { font-size: 32px; font-weight: 800; margin-bottom: 22px; }
+    .pd-badge {
+        display: inline-block; background: var(--primary); color: white;
+        font-size: 12px; font-weight: bold; padding: 6px 12px; border-radius: 8px; margin-bottom: 14px;
+    }
+    .pd-details { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+    .pd-details dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 14px; }
+    .pd-details dt { color: var(--muted); font-weight: 600; }
+    .pd-actions { display: flex; gap: 14px; }
+    .pd-add-btn, .pd-buy-btn {
+        flex: 1; border: 0; padding: 15px; border-radius: 10px; font-weight: bold; font-size: 15px;
+        text-align: center; text-decoration: none; display: block;
+    }
+    .pd-add-btn { background: var(--card); border: 2px solid var(--primary); color: var(--primary); }
+    .pd-add-btn:hover { background: var(--primary); color: white; }
+    .pd-buy-btn { background: var(--primary); color: white; }
+    .pd-buy-btn:hover { background: var(--primary-dark); }
+    .pd-back { display: inline-block; margin-bottom: 20px; color: var(--muted); text-decoration: none; font-size: 14px; }
+    .pd-back:hover { color: var(--primary); }
+
+    @media(max-width: 800px) {
+        .pd-wrap { grid-template-columns: 1fr; }
+        .pd-image img { min-height: 280px; }
+    }
+{% endblock %}
+
+{% block content %}
+<div class="pd-wrap">
+    <div style="grid-column: 1/-1;">
+        <a href="{% url 'category' product.category %}" class="pd-back">← Back to {{ product.category }}</a>
+    </div>
+
+    <div class="pd-image">
+        <img src="{{ product.display_image }}" alt="{{ product.name }}">
+    </div>
+
+    <div>
+        {% if product.badge %}<span class="pd-badge">{{ product.badge }}</span>{% endif %}
+        <div class="pd-category">{{ product.category }}</div>
+        <h1 class="pd-name">{{ product.name }}</h1>
+        <div class="pd-gender">For {{ product.gender }}</div>
+        <div class="pd-rating">★★★★★ <span>{{ product.rating }} out of 5</span></div>
+        <div class="pd-price">₹{{ product.price|floatformat:2 }}</div>
+
+        <div class="pd-details">
+            <dl>
+                <dt>Category</dt><dd>{{ product.category }}</dd>
+                <dt>Gender</dt><dd>{{ product.gender }}</dd>
+                <dt>Rating</dt><dd>{{ product.rating }} / 5</dd>
+                <dt>Delivery</dt><dd>Free over ₹4,000, otherwise standard rates apply</dd>
+                <dt>Returns</dt><dd>30-day return policy</dd>
+            </dl>
+        </div>
+
+        {% if user.is_authenticated %}
+            <div class="pd-actions">
+                <form method="post" action="{% url 'add_to_cart' product.id %}" style="flex:1;">
+                    {% csrf_token %}
+                    <button type="submit" class="pd-add-btn" style="width:100%;">Add to Cart</button>
+                </form>
+                <a href="{% url 'checkout' %}?buy_now_product_id={{ product.id }}&buy_now_qty=1" class="pd-buy-btn">Buy Now</a>
+            </div>
+        {% else %}
+            <div class="pd-actions">
+                <a href="{% url 'login' %}?next={% url 'product_detail' product.id %}" class="pd-add-btn">Log in to Add to Cart</a>
+                <a href="{% url 'login' %}?next={% url 'product_detail' product.id %}" class="pd-buy-btn">Log in to Buy Now</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
